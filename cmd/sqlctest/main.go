@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"log"
 	"math/rand"
+	"net/http"
 	"sqlctest/internal/models"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,36 +31,52 @@ func main() {
 
 	handler := Handler{Db: db}
 
-	r := fiber.New()
+	http.HandleFunc("GET /products", handler.AllProducts)
+	http.HandleFunc("GET /orders", handler.AllOrders)
 
-	r.Get("/products", handler.AllProducts)
-	r.Get("/orders", handler.AllOrders)
-
-	r.Listen(":8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }
 
-func (h *Handler) AllProducts(ctx *fiber.Ctx) error {
+func (h *Handler) AllProducts(w http.ResponseWriter, r *http.Request) {
 
-	products, err := h.Db.ListProducts(ctx.UserContext())
-
+	products, err := h.Db.ListProducts(context.Background())
 	if err != nil {
-		return err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return ctx.JSON(products)
+	jsonResp, err := json.Marshal(products)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(jsonResp); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
 
 }
 
-func (h *Handler) AllOrders(ctx *fiber.Ctx) error {
+func (h *Handler) AllOrders(w http.ResponseWriter, r *http.Request) {
 
-	orders, err := h.Db.ListOrders(ctx.UserContext())
+	orders, err := h.Db.ListOrders(context.Background())
 
 	if err != nil {
-		return err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return ctx.JSON(orders)
+	jsonResp, err := json.Marshal(orders)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(jsonResp); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
 
 }
 
