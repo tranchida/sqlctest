@@ -80,22 +80,23 @@ func InitDb(ctx context.Context, Db *models.Queries) {
 			Stock: int32(rand.Intn(100)),
 		}))
 
-		Db.CreateProduct(ctx, models.CreateProductParams{
+		Must(Db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample3",
 			Price: 30,
 			Stock: int32(rand.Intn(100)),
-		})
-		Db.CreateProduct(ctx, models.CreateProductParams{
+		}))
+
+		Must(Db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample4",
 			Price: 40,
 			Stock: int32(rand.Intn(100)),
-		})
+		}))
 		
-		Db.CreateProduct(ctx, models.CreateProductParams{
+		Must(Db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample5",
 			Price: 50,
 			Stock: int32(rand.Intn(100)),
-		})
+		}))
 
 
 		Must(Db.CreateOrder(ctx, models.CreateOrderParams{
