@@ -1,0 +1,13 @@
+version: "2"
+cloud:
+  project: '01JHVWTHE66AEW3571QCSP7Z50'
+sql:
+  - engine: "postgresql"
+    queries: "query.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "models"
+        out: "../internal/models"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
