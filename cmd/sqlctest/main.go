@@ -27,15 +27,16 @@ func main() {
 
 	defer conn.Close(context)
 
-	Db := models.New(conn)
-	InitDb(context, Db)
+	db := models.New(conn)
+	InitDb(context, db)
 
-	handler := Handler{Db: Db}
+	handler := Handler{Db: db}
 
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
 	r.GET("/products", handler.AllProducts)
+	r.GET("/orders", handler.AllOrders)
 
 	r.Run()
 
@@ -43,69 +44,76 @@ func main() {
 
 func (h *Handler) AllProducts(ctx *gin.Context) {
 
+	products, err := h.Db.ListProducts(ctx)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"products": products})
+
+}
+
+func (h *Handler) AllOrders(ctx *gin.Context) {
+
 	orders, err := h.Db.ListOrders(ctx)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"data": orders})
+	ctx.JSON(http.StatusOK, gin.H{"orders": orders})
 
 }
 
-func InitDb(ctx context.Context, Db *models.Queries) {
+func InitDb(ctx context.Context, db *models.Queries) {
 
-	count, err := Db.CountProducts(ctx)
-	if err != nil {
-		panic(err)
-	}
+	count := Must(db.CountProducts(ctx))
 
 	if count == 0 {
 
-
-		c1 := Must(Db.CreateCustomer(ctx, models.CreateCustomerParams{
+		c1 := Must(db.CreateCustomer(ctx, models.CreateCustomerParams{
 			Name:  "John Doe",
 			Email: "",
 		}))
 
-		p1 := Must(Db.CreateProduct(ctx, models.CreateProductParams{
+		p1 := Must(db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample1",
 			Price: 30,
 			Stock: int32(rand.Intn(100)),
 		}))
 
-		p2 := Must(Db.CreateProduct(ctx, models.CreateProductParams{
+		p2 := Must(db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample2",
 			Price: 20,
 			Stock: int32(rand.Intn(100)),
 		}))
 
-		Must(Db.CreateProduct(ctx, models.CreateProductParams{
+		Must(db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample3",
 			Price: 30,
 			Stock: int32(rand.Intn(100)),
 		}))
 
-		Must(Db.CreateProduct(ctx, models.CreateProductParams{
+		Must(db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample4",
 			Price: 40,
 			Stock: int32(rand.Intn(100)),
 		}))
-		
-		Must(Db.CreateProduct(ctx, models.CreateProductParams{
+
+		Must(db.CreateProduct(ctx, models.CreateProductParams{
 			Code:  "sample5",
 			Price: 50,
 			Stock: int32(rand.Intn(100)),
 		}))
 
-
-		Must(Db.CreateOrder(ctx, models.CreateOrderParams{
+		Must(db.CreateOrder(ctx, models.CreateOrderParams{
 			CustomerID: c1.ID,
 			ProductID:  p1.ID,
 			Quantity:   1,
 		}))
 
-		Must(Db.CreateOrder(ctx, models.CreateOrderParams{
+		Must(db.CreateOrder(ctx, models.CreateOrderParams{
 			CustomerID: c1.ID,
 			ProductID:  p2.ID,
 			Quantity:   2,
@@ -116,8 +124,8 @@ func InitDb(ctx context.Context, Db *models.Queries) {
 }
 
 func Must[T any](obj T, err error) T {
-    if err != nil {
-        panic(err)
-    }
-    return obj
+	if err != nil {
+		panic(err)
+	}
+	return obj
 }
