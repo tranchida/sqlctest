@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"log"
 	"math/rand"
-	"net/http"
 	"sqlctest/internal/models"
 
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
+	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Handler struct {
@@ -18,51 +16,49 @@ type Handler struct {
 func main() {
 
 	context := context.Background()
+
 	url := "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
 
-	conn, err := pgx.Connect(context, url)
+	conn, err := pgxpool.New(context, url)
 	if err != nil {
 		panic(err)
 	}
-
-	defer conn.Close(context)
 
 	db := models.New(conn)
 	InitDb(context, db)
 
 	handler := Handler{Db: db}
 
-	r := gin.Default()
-	r.SetTrustedProxies(nil)
+	r := fiber.New()
 
-	r.GET("/products", handler.AllProducts)
-	r.GET("/orders", handler.AllOrders)
+	r.Get("/products", handler.AllProducts)
+	r.Get("/orders", handler.AllOrders)
 
-	r.Run()
-
-}
-
-func (h *Handler) AllProducts(ctx *gin.Context) {
-
-	products, err := h.Db.ListProducts(ctx)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"products": products})
+	r.Listen(":8080")
 
 }
 
-func (h *Handler) AllOrders(ctx *gin.Context) {
+func (h *Handler) AllProducts(ctx *fiber.Ctx) error {
 
-	orders, err := h.Db.ListOrders(ctx)
+	products, err := h.Db.ListProducts(ctx.UserContext())
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"orders": orders})
+	return ctx.JSON(products)
+
+}
+
+func (h *Handler) AllOrders(ctx *fiber.Ctx) error {
+
+	orders, err := h.Db.ListOrders(ctx.UserContext())
+
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(orders)
 
 }
 
