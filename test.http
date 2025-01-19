@@ -1,0 +1,13 @@
+GET http://localhost:8080/health
+
+###
+
+GET http://localhost:8080/customers
+
+###
+
+GET http://localhost:8080/products
+
+###
+
+GET http://localhost:8080/orders

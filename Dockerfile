@@ -6,11 +6,14 @@ WORKDIR /build
 
 COPY . .
 
-RUN go -v mod download
+RUN go mod download
 
 RUN go build -o sqlctest cmd/sqlctest/main.go
 
 FROM docker.io/alpine:3.14 AS runtime
+
+ENV TZ=Europe/Zurich
+RUN apk --no-cache add tzdata
 
 COPY --from=build /build/sqlctest /app/sqlctest
 
