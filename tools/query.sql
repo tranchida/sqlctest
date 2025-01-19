@@ -19,14 +19,17 @@ UPDATE product SET price = $1 WHERE id = $2 RETURNING *;
 -- name: CreateCustomer :one
 INSERT INTO customer (name, email) VALUES ($1, $2) RETURNING *;
 
+-- name: ListCustomers :many
+SELECT * FROM customer ORDER BY name;
+
 -- name: CreateOrder :one
 INSERT INTO "order" (customer_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *;
 
 -- name: ListOrders :many
 SELECT 
-    customer.*, 
-    product.*, 
-    "order".quantity 
+    customer.id as customerId,customer.name,customer.email, 
+    product.id as productId,product.code,product.price,product.stock,product.color, 
+    "order".quantity, "order".created_at
 FROM customer 
 join "order" on customer.id = "order".customer_id
 join product on product.id = "order".product_id

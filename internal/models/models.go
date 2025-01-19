@@ -23,8 +23,9 @@ type Order struct {
 }
 
 type Product struct {
-	ID    int64  `json:"id"`
-	Code  string `json:"code"`
-	Price int32  `json:"price"`
-	Stock int32  `json:"stock"`
+	ID    int64       `json:"id"`
+	Code  string      `json:"code"`
+	Price int32       `json:"price"`
+	Stock int32       `json:"stock"`
+	Color pgtype.Text `json:"color"`
 }

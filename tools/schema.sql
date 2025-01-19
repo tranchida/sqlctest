@@ -5,6 +5,8 @@ CREATE TABLE product (
     stock INT NOT NULL
 );
 
+ALTER TABLE product ADD column color VARCHAR(255);
+
 CREATE TABLE customer (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,

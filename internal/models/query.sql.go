@@ -7,6 +7,8 @@ package models
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countProducts = `-- name: CountProducts :one
@@ -60,7 +62,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 }
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO product (code, price, stock) VALUES ($1, $2, $3) RETURNING id, code, price, stock
+INSERT INTO product (code, price, stock) VALUES ($1, $2, $3) RETURNING id, code, price, stock, color
 `
 
 type CreateProductParams struct {
@@ -77,12 +79,13 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Code,
 		&i.Price,
 		&i.Stock,
+		&i.Color,
 	)
 	return i, err
 }
 
 const getProductById = `-- name: GetProductById :one
-SELECT id, code, price, stock FROM product WHERE id = $1 LIMIT 1
+SELECT id, code, price, stock, color FROM product WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetProductById(ctx context.Context, id int64) (Product, error) {
@@ -93,15 +96,40 @@ func (q *Queries) GetProductById(ctx context.Context, id int64) (Product, error)
 		&i.Code,
 		&i.Price,
 		&i.Stock,
+		&i.Color,
 	)
 	return i, err
 }
 
+const listCustomers = `-- name: ListCustomers :many
+SELECT id, name, email FROM customer ORDER BY name
+`
+
+func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
+	rows, err := q.db.Query(ctx, listCustomers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Customer
+	for rows.Next() {
+		var i Customer
+		if err := rows.Scan(&i.ID, &i.Name, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOrders = `-- name: ListOrders :many
 SELECT 
-    customer.id, customer.name, customer.email, 
-    product.id, product.code, product.price, product.stock, 
-    "order".quantity 
+    customer.id as customerId,customer.name,customer.email, 
+    product.id as productId,product.code,product.price,product.stock,product.color, 
+    "order".quantity, "order".created_at
 FROM customer 
 join "order" on customer.id = "order".customer_id
 join product on product.id = "order".product_id
@@ -109,14 +137,16 @@ ORDER BY customer.name, product.code
 `
 
 type ListOrdersRow struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	ID_2     int64  `json:"id_2"`
-	Code     string `json:"code"`
-	Price    int32  `json:"price"`
-	Stock    int32  `json:"stock"`
-	Quantity int32  `json:"quantity"`
+	Customerid int64            `json:"customerid"`
+	Name       string           `json:"name"`
+	Email      string           `json:"email"`
+	Productid  int64            `json:"productid"`
+	Code       string           `json:"code"`
+	Price      int32            `json:"price"`
+	Stock      int32            `json:"stock"`
+	Color      pgtype.Text      `json:"color"`
+	Quantity   int32            `json:"quantity"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 func (q *Queries) ListOrders(ctx context.Context) ([]ListOrdersRow, error) {
@@ -129,14 +159,16 @@ func (q *Queries) ListOrders(ctx context.Context) ([]ListOrdersRow, error) {
 	for rows.Next() {
 		var i ListOrdersRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.Customerid,
 			&i.Name,
 			&i.Email,
-			&i.ID_2,
+			&i.Productid,
 			&i.Code,
 			&i.Price,
 			&i.Stock,
+			&i.Color,
 			&i.Quantity,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -149,7 +181,7 @@ func (q *Queries) ListOrders(ctx context.Context) ([]ListOrdersRow, error) {
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, code, price, stock FROM product ORDER BY code
+SELECT id, code, price, stock, color FROM product ORDER BY code
 `
 
 func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
@@ -166,6 +198,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 			&i.Code,
 			&i.Price,
 			&i.Stock,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -178,7 +211,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const updateProduct = `-- name: UpdateProduct :exec
-UPDATE product SET code = $1, price = $2, stock = $3 WHERE id = $4 RETURNING id, code, price, stock
+UPDATE product SET code = $1, price = $2, stock = $3 WHERE id = $4 RETURNING id, code, price, stock, color
 `
 
 type UpdateProductParams struct {
@@ -199,7 +232,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 }
 
 const updateProductPrice = `-- name: UpdateProductPrice :exec
-UPDATE product SET price = $1 WHERE id = $2 RETURNING id, code, price, stock
+UPDATE product SET price = $1 WHERE id = $2 RETURNING id, code, price, stock, color
 `
 
 type UpdateProductPriceParams struct {

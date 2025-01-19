@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"sqlctest/internal/models"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,7 +20,10 @@ func main() {
 
 	context := context.Background()
 
-	url := "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+	var url string
+	if url = os.Getenv("POSTGRESQL_URL"); url == "" {
+		url = "postgres://gouser:password@localhost:5432/mydb?sslmode=disable"
+	} 
 
 	conn, err := pgxpool.New(context, url)
 	if err != nil {
@@ -29,54 +33,57 @@ func main() {
 	db := models.New(conn)
 	InitDb(context, db)
 
+	gin.SetMode(gin.ReleaseMode)
+	log.Printf("GIN server starting version : %s\n", gin.Version)
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+
 	handler := Handler{Db: db}
 
-	http.HandleFunc("GET /products", handler.AllProducts)
-	http.HandleFunc("GET /orders", handler.AllOrders)
+	r.GET("/customers", handler.AllCustomers)
+	r.GET("/products", handler.AllProducts)
+	r.GET("/orders", handler.AllOrders)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Server started on port 8080")
+	log.Fatal(r.Run(":8080"))
 
 }
 
-func (h *Handler) AllProducts(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AllCustomers(c *gin.Context) {
+
+	customers, err := h.Db.ListCustomers(context.Background())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, customers)
+
+}
+
+func (h *Handler) AllProducts(c *gin.Context) {
 
 	products, err := h.Db.ListProducts(context.Background())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	jsonResp, err := json.Marshal(products)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(jsonResp); err != nil {
-		log.Printf("Error writing response: %v", err)
-	}
+	c.JSON(http.StatusOK, products)
 
 }
 
-func (h *Handler) AllOrders(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AllOrders(c *gin.Context) {
 
 	orders, err := h.Db.ListOrders(context.Background())
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	jsonResp, err := json.Marshal(orders)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(jsonResp); err != nil {
-		log.Printf("Error writing response: %v", err)
-	}
+	c.JSON(http.StatusOK, orders)
 
 }
 
@@ -88,7 +95,7 @@ func InitDb(ctx context.Context, db *models.Queries) {
 
 		c1 := Must(db.CreateCustomer(ctx, models.CreateCustomerParams{
 			Name:  "John Doe",
-			Email: "",
+			Email: "jdoe@fake.net",
 		}))
 
 		p1 := Must(db.CreateProduct(ctx, models.CreateProductParams{
