@@ -4,6 +4,14 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
-  - configmap.yaml
-  - secret.yaml
 
+configMapGenerator:
+  - name: sqlctest
+    files:
+      - sqlc/schema.sql
+
+secretGenerator:
+  - name: sqlctest-secret
+    literals:
+      - postgresql-url=postgres://gouser:password@host.minikube.internal:5432/mydb?sslmode=disable
+      - postgresql-password=password
