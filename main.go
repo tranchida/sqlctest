@@ -21,12 +21,17 @@ func main() {
 
 	var url string
 	if url = os.Getenv("POSTGRESQL_URL"); url == "" {
-		url = "postgres://gouser:password@localhost:5432/mydb?sslmode=disable"
+		url = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
 	}
 
 	conn, err := pgxpool.New(context, url)
 	if err != nil {
 		panic(err)
+	}
+
+	err = initDB(conn)
+	if err != nil {
+		log.Println("table already exist")
 	}
 
 	db := models.New(conn)
@@ -48,6 +53,25 @@ func main() {
 
 	log.Println("Server started on port 8080")
 	log.Fatal(r.Run(":8080"))
+
+}
+
+func initDB(d *pgxpool.Pool) error {
+
+	// Lire et exécuter les fichiers SQL
+
+	sqlBytes, err := os.ReadFile("build/sqlc/schema.sql")
+	if err != nil {
+		return err
+	}
+
+	_, err = d.Exec(context.Background(), string(sqlBytes))
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Fichier SQL exécuté avec succès")
+	return nil
 
 }
 
