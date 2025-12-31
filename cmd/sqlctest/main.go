@@ -53,7 +53,7 @@ func main() {
 	})
 	e.GET("/seed", handler.Seed)
 
-	log.Println("Server started on port 8080")
+	log.Println("Server started on http://localhost:8080")
 	log.Fatal(e.Start(":8080"))
 
 }

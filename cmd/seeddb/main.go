@@ -28,9 +28,12 @@ func main() {
 		panic(err)
 	}
 
+	println(string(schema))
+
 	_, err = conn.Exec(ctx, string(schema))
 	if err != nil {
 		panic(err)
 	}
 
+	println("Database seeded")
 }
