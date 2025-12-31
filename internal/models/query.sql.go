@@ -23,7 +23,7 @@ func (q *Queries) CountProducts(ctx context.Context) (int64, error) {
 }
 
 const createCustomer = `-- name: CreateCustomer :one
-INSERT INTO customer (name, email) VALUES ($1, $2) RETURNING id, name, email
+INSERT INTO customer (name, email) VALUES ($1, $2) RETURNING id, name, email, created_at
 `
 
 type CreateCustomerParams struct {
@@ -34,7 +34,12 @@ type CreateCustomerParams struct {
 func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error) {
 	row := q.db.QueryRow(ctx, createCustomer, arg.Name, arg.Email)
 	var i Customer
-	err := row.Scan(&i.ID, &i.Name, &i.Email)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -102,7 +107,7 @@ func (q *Queries) GetProductById(ctx context.Context, id int64) (Product, error)
 }
 
 const listCustomers = `-- name: ListCustomers :many
-SELECT id, name, email FROM customer ORDER BY name
+SELECT id, name, email, created_at FROM customer ORDER BY name
 `
 
 func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
@@ -114,7 +119,12 @@ func (q *Queries) ListCustomers(ctx context.Context) ([]Customer, error) {
 	var items []Customer
 	for rows.Next() {
 		var i Customer
-		if err := rows.Scan(&i.ID, &i.Name, &i.Email); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

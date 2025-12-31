@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS "order";
+DROP TABLE IF EXISTS customer;
+DROP TABLE IF EXISTS product;
+
 CREATE TABLE product (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(255) NOT NULL,
@@ -12,6 +16,8 @@ CREATE TABLE customer (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE customer ADD column created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 CREATE TABLE "order" (
     id BIGSERIAL PRIMARY KEY,
@@ -33,4 +39,3 @@ INSERT INTO product (code,price,stock,color) VALUES ('sample5',50,91,'yellow');
 
 INSERT INTO "order" (customer_id,product_id,quantity) VALUES (1,1,1);
 INSERT INTO "order" (customer_id,product_id,quantity) VALUES (1,2,2);
-

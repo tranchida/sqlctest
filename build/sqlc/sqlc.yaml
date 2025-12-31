@@ -1,6 +1,7 @@
 version: "2"
-cloud:
-  project: '01JHVWTHE66AEW3571QCSP7Z50'
+servers:
+- engine: postgresql
+  uri: "postgres://user:password@localhost:5432/sqlctest?sslmode=disable"
 sql:
   - engine: "postgresql"
     queries: "query.sql"

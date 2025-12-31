@@ -7,8 +7,9 @@ import (
 	"os"
 	"sqlctest/internal/models"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Handler struct {
@@ -21,7 +22,7 @@ func main() {
 
 	var url string
 	if url = os.Getenv("POSTGRESQL_URL"); url == "" {
-		url = "postgres://gouser:password@localhost:5432/mydb?sslmode=disable"
+		url = "postgres://user:password@localhost:5432/sqlctest?sslmode=disable"
 	}
 
 	conn, err := pgxpool.New(context, url)
@@ -31,59 +32,61 @@ func main() {
 
 	db := models.New(conn)
 
-	gin.SetMode(gin.ReleaseMode)
-	log.Printf("GIN server starting version : %s\n", gin.Version)
-	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	e := echo.New()
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus: true,
+		LogURI:    true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			log.Printf("URI: %s, status: %d", v.URI, v.Status)
+			return nil
+		},
+	}))
+	e.Use(middleware.Recover())
 
 	handler := Handler{Db: db}
 
-	r.GET("/customers", handler.AllCustomers)
-	r.GET("/products", handler.AllProducts)
-	r.GET("/orders", handler.AllOrders)
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	e.GET("/customers", handler.AllCustomers)
+	e.GET("/products", handler.AllProducts)
+	e.GET("/orders", handler.AllOrders)
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
 	log.Println("Server started on port 8080")
-	log.Fatal(r.Run(":8080"))
+	log.Fatal(e.Start(":8080"))
 
 }
 
-func (h *Handler) AllCustomers(c *gin.Context) {
+func (h *Handler) AllCustomers(c echo.Context) error {
 
 	customers, err := h.Db.ListCustomers(context.Background())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, customers)
+	return c.JSON(http.StatusOK, customers)
 
 }
 
-func (h *Handler) AllProducts(c *gin.Context) {
+func (h *Handler) AllProducts(c echo.Context) error {
 
 	products, err := h.Db.ListProducts(context.Background())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, products)
+	return c.JSON(http.StatusOK, products)
 
 }
 
-func (h *Handler) AllOrders(c *gin.Context) {
+func (h *Handler) AllOrders(c echo.Context) error {
 
 	orders, err := h.Db.ListOrders(context.Background())
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, orders)
+	return c.JSON(http.StatusOK, orders)
 
 }
