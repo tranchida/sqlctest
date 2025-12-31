@@ -51,6 +51,7 @@ func main() {
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
+	e.GET("/seed", handler.Seed)
 
 	log.Println("Server started on port 8080")
 	log.Fatal(e.Start(":8080"))
@@ -88,5 +89,16 @@ func (h *Handler) AllOrders(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, orders)
+
+}
+
+func (h *Handler) Seed(c echo.Context) error {
+
+	customer, err := h.Db.CreateCustomer(context.Background(), models.CreateCustomerParams{Name: "John", Email: "john@fake.com"})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, customer)
 
 }

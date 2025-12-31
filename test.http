@@ -11,3 +11,7 @@ GET http://localhost:8080/products
 ###
 
 GET http://localhost:8080/orders
+
+###
+
+GET http://localhost:8080/seed

@@ -1,10 +1,21 @@
 services:
+
+  app:
+    image: sqlctest:latest
+    environment:
+      POSTGRESQL_URL: postgresql://user:password@db:5432/sqlctest
+      TZ: "Europe/Paris"
+    ports:
+      - "8080:8080"
+
   db:
-    image: postgres:17
+    image: bitnami/postgresql:latest
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: sqlctest
+      POSTGRESQL_TIMEZONE: "Europe/Paris"
+      POSTGRESQL_LOG_TIMEZONE: "Europe/Paris"
     ports:
       - "5432:5432"
     volumes:

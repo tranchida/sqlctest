@@ -1,10 +1,6 @@
-hello:
-	@echo "Hello"
-
-build:
-	docker buildx build -t localhost/sqlctest:latest .
+docker:
+	@docker buildx build -t sqlctest:latest .
 
 run:
-	docker run --rm -it -p 8080:8080 localhost/sqlctest:latest
-
-all: hello build run
+	docker compose down
+	docker compose up -d
