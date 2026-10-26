@@ -1,3 +1,4 @@
 .vscode
 bin/
 gormtest.db
+.idea/

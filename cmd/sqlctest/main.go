@@ -8,8 +8,8 @@ import (
 	"sqlctest/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 type Handler struct {
@@ -36,7 +36,7 @@ func main() {
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus: true,
 		LogURI:    true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 			log.Printf("URI: %s, status: %d", v.URI, v.Status)
 			return nil
 		},
@@ -48,17 +48,19 @@ func main() {
 	e.GET("/customers", handler.AllCustomers)
 	e.GET("/products", handler.AllProducts)
 	e.GET("/orders", handler.AllOrders)
-	e.GET("/health", func(c echo.Context) error {
+	e.GET("/health", func(c *echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 	e.GET("/seed", handler.Seed)
 
 	log.Println("Server started on http://localhost:8080")
-	log.Fatal(e.Start(":8080"))
+	if err := e.Start(":8080"); err != nil {
+		log.Fatal(err)
+	}
 
 }
 
-func (h *Handler) AllCustomers(c echo.Context) error {
+func (h *Handler) AllCustomers(c *echo.Context) error {
 
 	customers, err := h.Db.ListCustomers(context.Background())
 	if err != nil {
@@ -69,7 +71,7 @@ func (h *Handler) AllCustomers(c echo.Context) error {
 
 }
 
-func (h *Handler) AllProducts(c echo.Context) error {
+func (h *Handler) AllProducts(c *echo.Context) error {
 
 	products, err := h.Db.ListProducts(context.Background())
 	if err != nil {
@@ -80,7 +82,7 @@ func (h *Handler) AllProducts(c echo.Context) error {
 
 }
 
-func (h *Handler) AllOrders(c echo.Context) error {
+func (h *Handler) AllOrders(c *echo.Context) error {
 
 	orders, err := h.Db.ListOrders(context.Background())
 
@@ -92,7 +94,7 @@ func (h *Handler) AllOrders(c echo.Context) error {
 
 }
 
-func (h *Handler) Seed(c echo.Context) error {
+func (h *Handler) Seed(c *echo.Context) error {
 
 	customer, err := h.Db.CreateCustomer(context.Background(), models.CreateCustomerParams{Name: "John", Email: "john@fake.com"})
 	if err != nil {
